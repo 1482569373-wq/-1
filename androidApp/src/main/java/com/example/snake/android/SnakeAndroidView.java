@@ -179,8 +179,14 @@ public class SnakeAndroidView extends View {
             difficultyButtons[i].set(left, chipTop, left + chipWidth, chipTop + 38f);
         }
 
-        float buttonSize = Math.min(66f, Math.max(52f, controlRect.height() * 0.42f));
-        float gap = Math.max(10f, buttonSize * 0.18f);
+        // 方向键是手机端最常用的操作，所以这里优先保证它们足够大。
+        // 旧版最大只有 66px，手指点击时容易误触；新版会根据屏幕宽度和控制区高度动态放大。
+        float desiredButtonSize = Math.min(92f, Math.max(72f, Math.min(width * 0.20f, controlRect.height() * 0.52f)));
+        float gap = Math.max(12f, desiredButtonSize * 0.16f);
+        // 如果遇到特别矮的屏幕，按钮会自动收一点，避免下排方向键跑出屏幕底部。
+        float buttonSize = Math.min(desiredButtonSize, Math.max(56f, (controlRect.height() - gap) / 2f));
+        gap = Math.max(10f, buttonSize * 0.16f);
+
         float centerX = width / 2f;
         float top = controlRect.top + Math.max(0, (controlRect.height() - buttonSize * 2f - gap) / 2f);
         upButton.set(centerX - buttonSize / 2f, top, centerX + buttonSize / 2f, top + buttonSize);
@@ -191,9 +197,10 @@ public class SnakeAndroidView extends View {
         rightButton.set(centerX + buttonSize / 2f + gap, top + buttonSize + gap,
                 centerX + buttonSize * 1.5f + gap, top + buttonSize * 2f + gap);
 
-        float commandWidth = Math.min(104f, (centerX - margin * 2f));
-        pauseButton.set(margin, downButton.top, margin + commandWidth, downButton.bottom);
-        restartButton.set(width - margin - commandWidth, downButton.top, width - margin, downButton.bottom);
+        // 暂停和重开按钮放在上排两侧，给下排的左/下/右方向键腾出完整空间。
+        float commandWidth = Math.min(92f, Math.max(64f, centerX - buttonSize / 2f - gap - margin));
+        pauseButton.set(margin, upButton.top, margin + commandWidth, upButton.bottom);
+        restartButton.set(width - margin - commandWidth, upButton.top, width - margin, upButton.bottom);
     }
 
     private boolean handleTap(float x, float y) {

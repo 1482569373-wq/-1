@@ -18,4 +18,11 @@ class DifficultyTest {
         assertEquals(120_000_000L, Difficulty.NORMAL.tickNanos());
         assertEquals(80_000_000L, Difficulty.HARD.tickNanos());
     }
+
+    @Test
+    void difficultiesUseIncreasingScoreMultipliers() {
+        assertEquals(1, Difficulty.EASY.scoreMultiplier());
+        assertEquals(2, Difficulty.NORMAL.scoreMultiplier());
+        assertEquals(3, Difficulty.HARD.scoreMultiplier());
+    }
 }

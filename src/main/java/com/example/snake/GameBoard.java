@@ -16,6 +16,10 @@ public class GameBoard extends Canvas {
     private static final Color SNAKE_HEAD = Color.rgb(90, 226, 142);
     private static final Color SNAKE_BODY = Color.rgb(44, 168, 99);
     private static final Color FOOD = Color.rgb(244, 79, 96);
+    private static final Color BONUS_FOOD = Color.rgb(255, 196, 87);
+    private static final Color INVINCIBLE_FOOD = Color.rgb(105, 214, 255);
+    private static final Color DOUBLE_FOOD = Color.rgb(189, 130, 255);
+    private static final Color OBSTACLE = Color.rgb(116, 127, 143);
     private static final Color TEXT = Color.rgb(239, 244, 250);
     private static final Color MUTED_TEXT = Color.rgb(160, 171, 186);
     private static final Color ACCENT = Color.rgb(89, 155, 255);
@@ -32,6 +36,7 @@ public class GameBoard extends Canvas {
     public void draw(GameScreen screen, Difficulty difficulty) {
         GraphicsContext gc = getGraphicsContext2D();
         drawBackground(gc);
+        drawObstacles(gc);
         drawFood(gc);
         drawSnake(gc);
         drawScore(gc, difficulty);
@@ -60,19 +65,42 @@ public class GameBoard extends Canvas {
         }
     }
 
+    private void drawObstacles(GraphicsContext gc) {
+        gc.setFill(OBSTACLE);
+        for (Point obstacle : state.obstacles()) {
+            double inset = 3;
+            gc.fillRoundRect(obstacle.x() * CELL_SIZE + inset, obstacle.y() * CELL_SIZE + inset,
+                    CELL_SIZE - inset * 2, CELL_SIZE - inset * 2, 5, 5);
+        }
+    }
+
     private void drawFood(GraphicsContext gc) {
-        Point food = state.food();
+        Food food = state.food();
         if (food == null) {
             return;
         }
-        double x = food.x() * CELL_SIZE;
-        double y = food.y() * CELL_SIZE;
+        Point point = food.position();
+        double x = point.x() * CELL_SIZE;
+        double y = point.y() * CELL_SIZE;
         double inset = CELL_SIZE * 0.18;
-        gc.setFill(FOOD);
+        gc.setFill(foodColor(food.type()));
         gc.fillOval(x + inset, y + inset, CELL_SIZE - inset * 2, CELL_SIZE - inset * 2);
-        gc.setStroke(Color.rgb(255, 175, 185));
+        gc.setStroke(Color.WHITE);
         gc.setLineWidth(2);
         gc.strokeOval(x + inset + 2, y + inset + 2, CELL_SIZE - inset * 2 - 4, CELL_SIZE - inset * 2 - 4);
+    }
+
+    private Color foodColor(FoodType type) {
+        if (type == FoodType.BONUS) {
+            return BONUS_FOOD;
+        }
+        if (type == FoodType.INVINCIBLE) {
+            return INVINCIBLE_FOOD;
+        }
+        if (type == FoodType.DOUBLE_SCORE) {
+            return DOUBLE_FOOD;
+        }
+        return FOOD;
     }
 
     private void drawSnake(GraphicsContext gc) {
@@ -106,7 +134,15 @@ public class GameBoard extends Canvas {
         gc.fillText("Score: " + state.score(), 12, 24);
         gc.setFill(MUTED_TEXT);
         gc.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
-        gc.fillText("Difficulty: " + difficulty.englishLabel() + " (" + difficulty.tickMillis() + "ms)", 12, 44);
+        gc.fillText("Difficulty: " + difficulty.englishLabel() + " x" + difficulty.scoreMultiplier()
+                + "  Best: " + state.highScore(), 12, 44);
+        String effect = state.isInvincible()
+                ? "INV " + state.invincibleTicks()
+                : (state.isDoubleScoreActive() ? "DOUBLE " + state.doubleScoreTicks() : "");
+        if (!effect.isEmpty()) {
+            gc.setFill(ACCENT);
+            gc.fillText(effect, 12, 64);
+        }
     }
 
     private void drawMenu(GraphicsContext gc, Difficulty difficulty) {
@@ -115,13 +151,13 @@ public class GameBoard extends Canvas {
         drawSubtitle(gc, "Choose difficulty to start");
         drawDifficultyRows(gc, difficulty, getHeight() / 2 - 12);
         drawHint(gc, "1 Simple  |  2 Normal  |  3 Hard", getHeight() / 2 + 116);
-        drawHint(gc, "Arrow keys or WASD to move, Space to pause", getHeight() / 2 + 146);
+        drawHint(gc, "Red food + normal score, yellow bonus, blue invincible, purple double score", getHeight() / 2 + 146);
     }
 
     private void drawGameOver(GraphicsContext gc, Difficulty difficulty) {
         drawOverlay(gc);
         drawTitle(gc, "Game Over");
-        drawSubtitle(gc, "Score: " + state.score());
+        drawSubtitle(gc, "Score: " + state.score() + "  Best: " + state.highScore());
         drawDifficultyRows(gc, difficulty, getHeight() / 2 - 12);
         drawHint(gc, "Press 1/2/3 to restart with a difficulty", getHeight() / 2 + 116);
         drawHint(gc, "Press R to retry current difficulty", getHeight() / 2 + 146);
@@ -168,7 +204,7 @@ public class GameBoard extends Canvas {
             gc.fillText((i + 1) + ". " + difficulty.englishLabel(), left + 18, y + 24);
             gc.setTextAlign(TextAlignment.RIGHT);
             gc.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
-            gc.fillText(difficulty.tickMillis() + "ms", left + rowWidth - 18, y + 24);
+            gc.fillText(difficulty.tickMillis() + "ms x" + difficulty.scoreMultiplier(), left + rowWidth - 18, y + 24);
             i++;
         }
     }

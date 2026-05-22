@@ -105,7 +105,7 @@ public class SnakeGameApp extends Application {
 
     private void startGame(Difficulty nextDifficulty) {
         difficulty = nextDifficulty;
-        state.reset();
+        state.reset(nextDifficulty);
         screen = GameScreen.PLAYING;
     }
 

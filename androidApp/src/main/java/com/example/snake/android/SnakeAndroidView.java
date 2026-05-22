@@ -12,6 +12,8 @@ import android.view.View;
 
 import com.example.snake.Difficulty;
 import com.example.snake.Direction;
+import com.example.snake.Food;
+import com.example.snake.FoodType;
 import com.example.snake.GameScreen;
 import com.example.snake.GameState;
 import com.example.snake.Point;
@@ -22,7 +24,11 @@ public class SnakeAndroidView extends View {
     private static final int GRID = Color.rgb(36, 44, 56);
     private static final int SNAKE_HEAD = Color.rgb(90, 226, 142);
     private static final int SNAKE_BODY = Color.rgb(44, 168, 99);
-    private static final int FOOD = Color.rgb(244, 79, 96);
+    private static final int NORMAL_FOOD = Color.rgb(244, 79, 96);
+    private static final int BONUS_FOOD = Color.rgb(255, 196, 87);
+    private static final int INVINCIBLE_FOOD = Color.rgb(105, 214, 255);
+    private static final int DOUBLE_FOOD = Color.rgb(189, 130, 255);
+    private static final int OBSTACLE = Color.rgb(116, 127, 143);
     private static final int TEXT = Color.rgb(239, 244, 250);
     private static final int MUTED_TEXT = Color.rgb(160, 171, 186);
     private static final int CONTROL = Color.rgb(45, 54, 68);
@@ -34,6 +40,8 @@ public class SnakeAndroidView extends View {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF boardRect = new RectF();
+    private final RectF settingsRect = new RectF();
+    private final RectF controlRect = new RectF();
     private final RectF upButton = new RectF();
     private final RectF downButton = new RectF();
     private final RectF leftButton = new RectF();
@@ -87,19 +95,18 @@ public class SnakeAndroidView extends View {
         calculateLayout();
         drawBackground(canvas);
         drawBoard(canvas);
+        drawObstacles(canvas);
         drawFood(canvas);
         drawSnake(canvas);
-        drawHud(canvas);
+        drawSettings(canvas);
+        drawControls(canvas);
 
         if (screen == GameScreen.MENU) {
-            drawDifficultyOverlay(canvas, titleSnake(), subtitleChoose());
+            drawMessage(canvas, titleSnake(), subtitleChoose());
         } else if (screen == GameScreen.GAME_OVER) {
-            drawDifficultyOverlay(canvas, titleGameOver(), subtitleScore());
-        } else {
-            drawControls(canvas);
-            if (screen == GameScreen.PAUSED) {
-                drawCenteredMessage(canvas, titlePaused(), subtitlePaused());
-            }
+            drawMessage(canvas, titleGameOver(), subtitleScore());
+        } else if (screen == GameScreen.PAUSED) {
+            drawMessage(canvas, titlePaused(), subtitlePaused());
         }
     }
 
@@ -107,14 +114,12 @@ public class SnakeAndroidView extends View {
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
         float y = event.getY();
-
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             touchStartX = x;
             touchStartY = y;
             swipeConsumed = false;
             return true;
         }
-
         if (event.getAction() == MotionEvent.ACTION_MOVE) {
             if (screen == GameScreen.PLAYING && handleSwipe(x, y)) {
                 swipeConsumed = true;
@@ -124,17 +129,14 @@ public class SnakeAndroidView extends View {
             }
             return true;
         }
-
         if (event.getAction() != MotionEvent.ACTION_UP) {
             return true;
         }
-
         if (handleTap(x, y)) {
             invalidate();
             performClick();
             return true;
         }
-
         if (!swipeConsumed && screen == GameScreen.PLAYING && handleSwipe(x, y)) {
             invalidate();
         }
@@ -151,56 +153,59 @@ public class SnakeAndroidView extends View {
     private void calculateLayout() {
         float width = getWidth();
         float height = getHeight();
-        float margin = Math.max(14f, Math.min(width, height) * 0.045f);
-        float hudHeight = Math.max(42f, height * 0.11f);
-        float rightPanelWidth = Math.min(300f, Math.max(220f, width * 0.30f));
-        float boardAreaWidth = width - rightPanelWidth - margin * 3f;
-        float boardAreaHeight = height - hudHeight - margin * 2f;
+        float margin = Math.max(12f, width * 0.035f);
+        float reservedBottom = height * 0.25f;
+        float settingsHeight = Math.max(92f, height * 0.13f);
+        float boardAreaTop = margin;
+        float boardAreaBottom = height - reservedBottom - settingsHeight - margin * 0.5f;
+        float boardAreaHeight = boardAreaBottom - boardAreaTop;
 
-        cellSize = Math.min(boardAreaWidth / state.columns(), boardAreaHeight / state.rows());
+        cellSize = Math.min((width - margin * 2f) / state.columns(), boardAreaHeight / state.rows());
         float boardWidth = cellSize * state.columns();
         float boardHeight = cellSize * state.rows();
-        float boardLeft = margin + (boardAreaWidth - boardWidth) / 2f;
-        float boardTop = hudHeight + margin + (boardAreaHeight - boardHeight) / 2f;
+        float boardLeft = (width - boardWidth) / 2f;
+        float boardTop = boardAreaTop + Math.max(0, (boardAreaHeight - boardHeight) / 2f);
         boardRect.set(boardLeft, boardTop, boardLeft + boardWidth, boardTop + boardHeight);
 
-        float panelLeft = width - rightPanelWidth - margin;
-        float panelCenterX = panelLeft + rightPanelWidth / 2f;
-        float buttonSize = Math.min(72f, Math.max(54f, height * 0.17f));
-        float gap = Math.max(10f, height * 0.025f);
-        float controlsTop = Math.max(hudHeight + margin, height * 0.22f);
-        upButton.set(panelCenterX - buttonSize / 2f, controlsTop,
-                panelCenterX + buttonSize / 2f, controlsTop + buttonSize);
-        leftButton.set(panelCenterX - buttonSize * 1.5f - gap, controlsTop + buttonSize + gap,
-                panelCenterX - buttonSize / 2f - gap, controlsTop + buttonSize * 2f + gap);
-        downButton.set(panelCenterX - buttonSize / 2f, controlsTop + buttonSize + gap,
-                panelCenterX + buttonSize / 2f, controlsTop + buttonSize * 2f + gap);
-        rightButton.set(panelCenterX + buttonSize / 2f + gap, controlsTop + buttonSize + gap,
-                panelCenterX + buttonSize * 1.5f + gap, controlsTop + buttonSize * 2f + gap);
+        float settingsTop = boardAreaBottom + margin * 0.5f;
+        settingsRect.set(margin, settingsTop, width - margin, settingsTop + settingsHeight);
+        controlRect.set(margin, settingsRect.bottom + margin * 0.5f, width - margin, height - margin);
 
-        float commandTop = Math.min(height - margin - 48f, downButton.bottom + gap * 1.4f);
-        pauseButton.set(panelLeft, commandTop, panelCenterX - 7f, commandTop + 44f);
-        restartButton.set(panelCenterX + 7f, commandTop, width - margin, commandTop + 44f);
-
-        float menuWidth = Math.min(rightPanelWidth, 300f);
-        float menuLeft = panelLeft + (rightPanelWidth - menuWidth) / 2f;
-        float menuTop = Math.max(hudHeight + margin, height / 2f - 78f);
+        float chipGap = 8f;
+        float chipWidth = (settingsRect.width() - chipGap * 2f) / 3f;
+        float chipTop = settingsRect.top + 42f;
         for (int i = 0; i < difficultyButtons.length; i++) {
-            difficultyButtons[i].set(menuLeft, menuTop + i * 56f, menuLeft + menuWidth, menuTop + i * 56f + 44f);
+            float left = settingsRect.left + i * (chipWidth + chipGap);
+            difficultyButtons[i].set(left, chipTop, left + chipWidth, chipTop + 38f);
         }
+
+        float buttonSize = Math.min(66f, Math.max(52f, controlRect.height() * 0.42f));
+        float gap = Math.max(10f, buttonSize * 0.18f);
+        float centerX = width / 2f;
+        float top = controlRect.top + Math.max(0, (controlRect.height() - buttonSize * 2f - gap) / 2f);
+        upButton.set(centerX - buttonSize / 2f, top, centerX + buttonSize / 2f, top + buttonSize);
+        leftButton.set(centerX - buttonSize * 1.5f - gap, top + buttonSize + gap,
+                centerX - buttonSize / 2f - gap, top + buttonSize * 2f + gap);
+        downButton.set(centerX - buttonSize / 2f, top + buttonSize + gap,
+                centerX + buttonSize / 2f, top + buttonSize * 2f + gap);
+        rightButton.set(centerX + buttonSize / 2f + gap, top + buttonSize + gap,
+                centerX + buttonSize * 1.5f + gap, top + buttonSize * 2f + gap);
+
+        float commandWidth = Math.min(104f, (centerX - margin * 2f));
+        pauseButton.set(margin, downButton.top, margin + commandWidth, downButton.bottom);
+        restartButton.set(width - margin - commandWidth, downButton.top, width - margin, downButton.bottom);
     }
 
     private boolean handleTap(float x, float y) {
-        if (screen == GameScreen.MENU || screen == GameScreen.GAME_OVER) {
-            for (int i = 0; i < difficultyButtons.length; i++) {
-                if (difficultyButtons[i].contains(x, y)) {
-                    startGame(Difficulty.values()[i]);
-                    return true;
-                }
+        for (int i = 0; i < difficultyButtons.length; i++) {
+            if (difficultyButtons[i].contains(x, y)) {
+                startGame(Difficulty.values()[i]);
+                return true;
             }
+        }
+        if (screen == GameScreen.MENU || screen == GameScreen.GAME_OVER) {
             return false;
         }
-
         if (upButton.contains(x, y)) {
             state.requestDirection(Direction.UP);
             return true;
@@ -244,7 +249,7 @@ public class SnakeAndroidView extends View {
 
     private void startGame(Difficulty nextDifficulty) {
         difficulty = nextDifficulty;
-        state.reset();
+        state.reset(nextDifficulty);
         screen = GameScreen.PLAYING;
     }
 
@@ -256,7 +261,6 @@ public class SnakeAndroidView extends View {
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(BACKGROUND);
         canvas.drawRoundRect(boardRect, 12f, 12f, paint);
-
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(1f);
         paint.setColor(GRID);
@@ -270,20 +274,47 @@ public class SnakeAndroidView extends View {
         }
     }
 
+    private void drawObstacles(Canvas canvas) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(OBSTACLE);
+        for (Point obstacle : state.obstacles()) {
+            float inset = Math.max(2f, cellSize * 0.13f);
+            RectF rect = new RectF(boardRect.left + obstacle.x() * cellSize + inset,
+                    boardRect.top + obstacle.y() * cellSize + inset,
+                    boardRect.left + (obstacle.x() + 1) * cellSize - inset,
+                    boardRect.top + (obstacle.y() + 1) * cellSize - inset);
+            canvas.drawRoundRect(rect, cellSize * 0.14f, cellSize * 0.14f, paint);
+        }
+    }
+
     private void drawFood(Canvas canvas) {
-        Point food = state.food();
+        Food food = state.food();
         if (food == null) {
             return;
         }
+        Point point = food.position();
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(FOOD);
-        float cx = boardRect.left + food.x() * cellSize + cellSize / 2f;
-        float cy = boardRect.top + food.y() * cellSize + cellSize / 2f;
+        paint.setColor(foodColor(food.type()));
+        float cx = boardRect.left + point.x() * cellSize + cellSize / 2f;
+        float cy = boardRect.top + point.y() * cellSize + cellSize / 2f;
         canvas.drawCircle(cx, cy, cellSize * 0.32f, paint);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(2f);
-        paint.setColor(Color.rgb(255, 175, 185));
+        paint.setColor(Color.WHITE);
         canvas.drawCircle(cx, cy, cellSize * 0.22f, paint);
+    }
+
+    private int foodColor(FoodType type) {
+        if (type == FoodType.BONUS) {
+            return BONUS_FOOD;
+        }
+        if (type == FoodType.INVINCIBLE) {
+            return INVINCIBLE_FOOD;
+        }
+        if (type == FoodType.DOUBLE_SCORE) {
+            return DOUBLE_FOOD;
+        }
+        return NORMAL_FOOD;
     }
 
     private void drawSnake(Canvas canvas) {
@@ -291,10 +322,9 @@ public class SnakeAndroidView extends View {
         int index = 0;
         for (Point segment : state.snake()) {
             paint.setStyle(Paint.Style.FILL);
-            paint.setColor(first ? SNAKE_HEAD : fadeBody(index));
+            paint.setColor(first ? (state.isInvincible() ? INVINCIBLE_FOOD : SNAKE_HEAD) : fadeBody(index));
             float inset = first ? cellSize * 0.10f : cellSize * 0.17f;
-            RectF rect = new RectF(
-                    boardRect.left + segment.x() * cellSize + inset,
+            RectF rect = new RectF(boardRect.left + segment.x() * cellSize + inset,
                     boardRect.top + segment.y() * cellSize + inset,
                     boardRect.left + (segment.x() + 1) * cellSize - inset,
                     boardRect.top + (segment.y() + 1) * cellSize - inset);
@@ -322,67 +352,76 @@ public class SnakeAndroidView extends View {
         canvas.drawCircle(baseX + cellSize * 0.64f, baseY + cellSize * 0.36f, eye, paint);
     }
 
-    private void drawHud(Canvas canvas) {
+    private void drawSettings(Canvas canvas) {
         paint.setStyle(Paint.Style.FILL);
+        paint.setColor(PANEL);
+        canvas.drawRoundRect(settingsRect, 16f, 16f, paint);
         paint.setTextAlign(Paint.Align.LEFT);
         paint.setColor(TEXT);
-        paint.setTextSize(32f);
+        paint.setTextSize(24f);
         paint.setFakeBoldText(true);
-        canvas.drawText(textScore() + state.score(), 24f, 40f, paint);
+        canvas.drawText(textScore() + state.score() + "   " + textBest() + state.highScore(), settingsRect.left + 14f, settingsRect.top + 28f, paint);
         paint.setFakeBoldText(false);
         paint.setColor(MUTED_TEXT);
-        paint.setTextSize(20f);
-        canvas.drawText(difficulty.chineseLabel() + " " + difficulty.tickMillis() + "ms", getWidth() - 128f, 39f, paint);
-    }
-
-    private void drawControls(Canvas canvas) {
-        drawButton(canvas, upButton, "\u2191", CONTROL);
-        drawButton(canvas, leftButton, "\u2190", CONTROL);
-        drawButton(canvas, downButton, "\u2193", CONTROL);
-        drawButton(canvas, rightButton, "\u2192", CONTROL);
-        drawCommandButton(canvas, pauseButton, screen == GameScreen.PAUSED ? textContinue() : textPause());
-        drawCommandButton(canvas, restartButton, textRestart());
-    }
-
-    private void drawDifficultyOverlay(Canvas canvas, String title, String subtitle) {
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(OVERLAY);
-        canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
-
-        float menuLeft = difficultyButtons[0].left;
-        float menuRight = difficultyButtons[0].right;
-        RectF titleRect = new RectF(menuLeft, Math.max(18f, difficultyButtons[0].top - 104f), menuRight, difficultyButtons[0].top - 54f);
-        RectF subtitleRect = new RectF(menuLeft, difficultyButtons[0].top - 56f, menuRight, difficultyButtons[0].top - 18f);
-        drawCenteredText(canvas, titleRect, title, 38f, TEXT, true);
-        drawCenteredText(canvas, subtitleRect, subtitle, 20f, MUTED_TEXT, false);
+        paint.setTextSize(18f);
+        canvas.drawText(effectText(), settingsRect.right - 148f, settingsRect.top + 28f, paint);
 
         Difficulty[] values = Difficulty.values();
         for (int i = 0; i < values.length; i++) {
             Difficulty option = values[i];
-            int color = option == difficulty ? CONTROL_ACTIVE : PANEL;
-            drawButton(canvas, difficultyButtons[i], option.chineseLabel() + "  " + option.tickMillis() + "ms", color);
+            drawButton(canvas, difficultyButtons[i], option.chineseLabel() + " x" + option.scoreMultiplier(),
+                    option == difficulty ? CONTROL_ACTIVE : CONTROL, 20f);
         }
     }
 
-    private void drawCenteredMessage(Canvas canvas, String title, String subtitle) {
+    private String effectText() {
+        if (state.isInvincible()) {
+            return textInvincible() + state.invincibleTicks();
+        }
+        if (state.isDoubleScoreActive()) {
+            return textDouble() + state.doubleScoreTicks();
+        }
+        Food food = state.food();
+        return food == null ? "" : foodName(food.type());
+    }
+
+    private String foodName(FoodType type) {
+        if (type == FoodType.BONUS) {
+            return textBonusFood();
+        }
+        if (type == FoodType.INVINCIBLE) {
+            return textInvFood();
+        }
+        if (type == FoodType.DOUBLE_SCORE) {
+            return textDoubleFood();
+        }
+        return textNormalFood();
+    }
+
+    private void drawControls(Canvas canvas) {
+        drawButton(canvas, upButton, "\u2191", CONTROL, 30f);
+        drawButton(canvas, leftButton, "\u2190", CONTROL, 30f);
+        drawButton(canvas, downButton, "\u2193", CONTROL, 30f);
+        drawButton(canvas, rightButton, "\u2192", CONTROL, 30f);
+        drawButton(canvas, pauseButton, screen == GameScreen.PAUSED ? textContinue() : textPause(), CONTROL_ACTIVE, 21f);
+        drawButton(canvas, restartButton, textRestart(), CONTROL_ACTIVE, 21f);
+    }
+
+    private void drawMessage(Canvas canvas, String title, String subtitle) {
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(OVERLAY);
-        canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
-        RectF titleRect = new RectF(0, getHeight() / 2f - 72f, getWidth(), getHeight() / 2f - 12f);
-        RectF subtitleRect = new RectF(0, getHeight() / 2f - 4f, getWidth(), getHeight() / 2f + 42f);
-        drawCenteredText(canvas, titleRect, title, 42f, TEXT, true);
-        drawCenteredText(canvas, subtitleRect, subtitle, 23f, MUTED_TEXT, false);
+        canvas.drawRect(0, 0, getWidth(), settingsRect.top, paint);
+        RectF titleRect = new RectF(boardRect.left, boardRect.top + boardRect.height() * 0.24f, boardRect.right, boardRect.top + boardRect.height() * 0.38f);
+        RectF subtitleRect = new RectF(boardRect.left, titleRect.bottom + 4f, boardRect.right, titleRect.bottom + 48f);
+        drawCenteredText(canvas, titleRect, title, 38f, TEXT, true);
+        drawCenteredText(canvas, subtitleRect, subtitle, 21f, MUTED_TEXT, false);
     }
 
-    private void drawButton(Canvas canvas, RectF rect, String label, int color) {
+    private void drawButton(Canvas canvas, RectF rect, String label, int color, float textSize) {
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(color);
-        canvas.drawRoundRect(rect, 18f, 18f, paint);
-        drawCenteredText(canvas, rect, label, 28f, TEXT, true);
-    }
-
-    private void drawCommandButton(Canvas canvas, RectF rect, String label) {
-        drawButton(canvas, rect, label, CONTROL_ACTIVE);
+        canvas.drawRoundRect(rect, 16f, 16f, paint);
+        drawCenteredText(canvas, rect, label, textSize, TEXT, true);
     }
 
     private void drawCenteredText(Canvas canvas, RectF rect, String text, float size, int color, boolean bold) {
@@ -397,43 +436,21 @@ public class SnakeAndroidView extends View {
         paint.setFakeBoldText(false);
     }
 
-    private String titleSnake() {
-        return "\u8d2a\u5403\u86c7";
-    }
-
-    private String titleGameOver() {
-        return "\u6e38\u620f\u7ed3\u675f";
-    }
-
-    private String titlePaused() {
-        return "\u6682\u505c";
-    }
-
-    private String subtitleChoose() {
-        return "\u9009\u62e9\u96be\u5ea6\u5f00\u59cb\u6e38\u620f";
-    }
-
-    private String subtitleScore() {
-        return textScore() + state.score() + "  \u00b7  \u91cd\u65b0\u9009\u62e9\u96be\u5ea6";
-    }
-
-    private String subtitlePaused() {
-        return "\u70b9\u51fb\u7ee7\u7eed\u56de\u5230\u6e38\u620f";
-    }
-
-    private String textScore() {
-        return "\u5206\u6570: ";
-    }
-
-    private String textPause() {
-        return "\u6682\u505c";
-    }
-
-    private String textContinue() {
-        return "\u7ee7\u7eed";
-    }
-
-    private String textRestart() {
-        return "\u91cd\u5f00";
-    }
+    private String titleSnake() { return "\u8d2a\u5403\u86c7"; }
+    private String titleGameOver() { return "\u6e38\u620f\u7ed3\u675f"; }
+    private String titlePaused() { return "\u6682\u505c"; }
+    private String subtitleChoose() { return "\u70b9\u51fb\u96be\u5ea6\u5f00\u59cb"; }
+    private String subtitleScore() { return textScore() + state.score() + "  \u00b7  " + textBest() + state.highScore(); }
+    private String subtitlePaused() { return "\u70b9\u51fb\u7ee7\u7eed\u56de\u5230\u6e38\u620f"; }
+    private String textScore() { return "\u5206\u6570: "; }
+    private String textBest() { return "\u6700\u9ad8: "; }
+    private String textPause() { return "\u6682\u505c"; }
+    private String textContinue() { return "\u7ee7\u7eed"; }
+    private String textRestart() { return "\u91cd\u5f00"; }
+    private String textInvincible() { return "\u65e0\u654c "; }
+    private String textDouble() { return "\u53cc\u500d "; }
+    private String textNormalFood() { return "\u666e\u901a\u8c46"; }
+    private String textBonusFood() { return "\u5956\u52b1\u8c46"; }
+    private String textInvFood() { return "\u65e0\u654c\u8c46"; }
+    private String textDoubleFood() { return "\u53cc\u500d\u8c46"; }
 }

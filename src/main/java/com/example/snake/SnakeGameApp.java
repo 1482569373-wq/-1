@@ -45,7 +45,7 @@ public class SnakeGameApp extends Application {
             }
         };
 
-        stage.setTitle("Snake - Difficulty Select");
+        stage.setTitle("贪吃蛇 - 难度选择");
         stage.setResizable(false);
         stage.setScene(scene);
         stage.show();

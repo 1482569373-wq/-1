@@ -44,7 +44,7 @@ public class GameBoard extends Canvas {
         if (screen == GameScreen.MENU) {
             drawMenu(gc, difficulty);
         } else if (screen == GameScreen.PAUSED) {
-            drawCenteredMessage(gc, "Paused", "Press Space to continue");
+            drawCenteredMessage(gc, "已暂停", "按空格继续");
         } else if (screen == GameScreen.GAME_OVER) {
             drawGameOver(gc, difficulty);
         }
@@ -131,14 +131,14 @@ public class GameBoard extends Canvas {
         gc.setFill(TEXT);
         gc.setFont(Font.font("Arial", FontWeight.BOLD, 18));
         gc.setTextAlign(TextAlignment.LEFT);
-        gc.fillText("Score: " + state.score(), 12, 24);
+        gc.fillText("分数: " + state.score(), 12, 24);
         gc.setFill(MUTED_TEXT);
         gc.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
-        gc.fillText("Difficulty: " + difficulty.englishLabel() + " x" + difficulty.scoreMultiplier()
-                + "  Best: " + state.highScore(), 12, 44);
+        gc.fillText("难度: " + difficulty.chineseLabel() + " x" + difficulty.scoreMultiplier()
+                + "  最高: " + state.highScore(), 12, 44);
         String effect = state.isInvincible()
-                ? "INV " + state.invincibleTicks()
-                : (state.isDoubleScoreActive() ? "DOUBLE " + state.doubleScoreTicks() : "");
+                ? "无敌 " + state.invincibleTicks()
+                : (state.isDoubleScoreActive() ? "双倍 " + state.doubleScoreTicks() : "");
         if (!effect.isEmpty()) {
             gc.setFill(ACCENT);
             gc.fillText(effect, 12, 64);
@@ -147,20 +147,20 @@ public class GameBoard extends Canvas {
 
     private void drawMenu(GraphicsContext gc, Difficulty difficulty) {
         drawOverlay(gc);
-        drawTitle(gc, "Snake");
-        drawSubtitle(gc, "Choose difficulty to start");
+        drawTitle(gc, "贪吃蛇");
+        drawSubtitle(gc, "选择难度开始游戏");
         drawDifficultyRows(gc, difficulty, getHeight() / 2 - 12);
-        drawHint(gc, "1 Simple  |  2 Normal  |  3 Hard", getHeight() / 2 + 116);
-        drawHint(gc, "Red food + normal score, yellow bonus, blue invincible, purple double score", getHeight() / 2 + 146);
+        drawHint(gc, "按 1 简单  |  2 普通  |  3 困难", getHeight() / 2 + 116);
+        drawHint(gc, "红豆=普通  黄豆=奖励  蓝豆=无敌  紫豆=双倍积分", getHeight() / 2 + 146);
     }
 
     private void drawGameOver(GraphicsContext gc, Difficulty difficulty) {
         drawOverlay(gc);
-        drawTitle(gc, "Game Over");
-        drawSubtitle(gc, "Score: " + state.score() + "  Best: " + state.highScore());
+        drawTitle(gc, "游戏结束");
+        drawSubtitle(gc, "分数: " + state.score() + "  最高: " + state.highScore());
         drawDifficultyRows(gc, difficulty, getHeight() / 2 - 12);
-        drawHint(gc, "Press 1/2/3 to restart with a difficulty", getHeight() / 2 + 116);
-        drawHint(gc, "Press R to retry current difficulty", getHeight() / 2 + 146);
+        drawHint(gc, "按 1/2/3 选择难度重新开始", getHeight() / 2 + 116);
+        drawHint(gc, "按 R 重试当前难度", getHeight() / 2 + 146);
     }
 
     private void drawCenteredMessage(GraphicsContext gc, String title, String subtitle) {
@@ -201,7 +201,7 @@ public class GameBoard extends Canvas {
             gc.setTextAlign(TextAlignment.LEFT);
             gc.setFill(TEXT);
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 15));
-            gc.fillText((i + 1) + ". " + difficulty.englishLabel(), left + 18, y + 24);
+            gc.fillText((i + 1) + ". " + difficulty.chineseLabel(), left + 18, y + 24);
             gc.setTextAlign(TextAlignment.RIGHT);
             gc.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
             gc.fillText(difficulty.tickMillis() + "ms x" + difficulty.scoreMultiplier(), left + rowWidth - 18, y + 24);

@@ -151,38 +151,42 @@ public class SnakeAndroidView extends View {
     private void calculateLayout() {
         float width = getWidth();
         float height = getHeight();
-        float sidePadding = Math.max(18f, width * 0.045f);
-        float topPadding = Math.max(48f, height * 0.052f);
-        float controlAreaHeight = Math.min(300f, height * 0.34f);
-        float availableBoardHeight = height - topPadding - controlAreaHeight - 18f;
+        float margin = Math.max(14f, Math.min(width, height) * 0.045f);
+        float hudHeight = Math.max(42f, height * 0.11f);
+        float rightPanelWidth = Math.min(300f, Math.max(220f, width * 0.30f));
+        float boardAreaWidth = width - rightPanelWidth - margin * 3f;
+        float boardAreaHeight = height - hudHeight - margin * 2f;
 
-        cellSize = Math.min((width - sidePadding * 2f) / state.columns(), availableBoardHeight / state.rows());
+        cellSize = Math.min(boardAreaWidth / state.columns(), boardAreaHeight / state.rows());
         float boardWidth = cellSize * state.columns();
         float boardHeight = cellSize * state.rows();
-        float boardLeft = (width - boardWidth) / 2f;
-        boardRect.set(boardLeft, topPadding, boardLeft + boardWidth, topPadding + boardHeight);
+        float boardLeft = margin + (boardAreaWidth - boardWidth) / 2f;
+        float boardTop = hudHeight + margin + (boardAreaHeight - boardHeight) / 2f;
+        boardRect.set(boardLeft, boardTop, boardLeft + boardWidth, boardTop + boardHeight);
 
-        float buttonSize = Math.min(78f, width * 0.18f);
-        float gap = Math.max(10f, width * 0.025f);
-        float centerX = width / 2f;
-        float controlsTop = boardRect.bottom + Math.max(20f, height * 0.025f);
-        upButton.set(centerX - buttonSize / 2f, controlsTop, centerX + buttonSize / 2f, controlsTop + buttonSize);
-        leftButton.set(centerX - buttonSize * 1.5f - gap, controlsTop + buttonSize + gap,
-                centerX - buttonSize / 2f - gap, controlsTop + buttonSize * 2f + gap);
-        downButton.set(centerX - buttonSize / 2f, controlsTop + buttonSize + gap,
-                centerX + buttonSize / 2f, controlsTop + buttonSize * 2f + gap);
-        rightButton.set(centerX + buttonSize / 2f + gap, controlsTop + buttonSize + gap,
-                centerX + buttonSize * 1.5f + gap, controlsTop + buttonSize * 2f + gap);
+        float panelLeft = width - rightPanelWidth - margin;
+        float panelCenterX = panelLeft + rightPanelWidth / 2f;
+        float buttonSize = Math.min(72f, Math.max(54f, height * 0.17f));
+        float gap = Math.max(10f, height * 0.025f);
+        float controlsTop = Math.max(hudHeight + margin, height * 0.22f);
+        upButton.set(panelCenterX - buttonSize / 2f, controlsTop,
+                panelCenterX + buttonSize / 2f, controlsTop + buttonSize);
+        leftButton.set(panelCenterX - buttonSize * 1.5f - gap, controlsTop + buttonSize + gap,
+                panelCenterX - buttonSize / 2f - gap, controlsTop + buttonSize * 2f + gap);
+        downButton.set(panelCenterX - buttonSize / 2f, controlsTop + buttonSize + gap,
+                panelCenterX + buttonSize / 2f, controlsTop + buttonSize * 2f + gap);
+        rightButton.set(panelCenterX + buttonSize / 2f + gap, controlsTop + buttonSize + gap,
+                panelCenterX + buttonSize * 1.5f + gap, controlsTop + buttonSize * 2f + gap);
 
-        float commandTop = Math.min(height - 58f, downButton.bottom + 16f);
-        pauseButton.set(sidePadding, commandTop, width / 2f - 8f, commandTop + 44f);
-        restartButton.set(width / 2f + 8f, commandTop, width - sidePadding, commandTop + 44f);
+        float commandTop = Math.min(height - margin - 48f, downButton.bottom + gap * 1.4f);
+        pauseButton.set(panelLeft, commandTop, panelCenterX - 7f, commandTop + 44f);
+        restartButton.set(panelCenterX + 7f, commandTop, width - margin, commandTop + 44f);
 
-        float menuWidth = Math.min(width - sidePadding * 2f, 360f);
-        float menuLeft = (width - menuWidth) / 2f;
-        float menuTop = height / 2f - 24f;
+        float menuWidth = Math.min(rightPanelWidth, 300f);
+        float menuLeft = panelLeft + (rightPanelWidth - menuWidth) / 2f;
+        float menuTop = Math.max(hudHeight + margin, height / 2f - 78f);
         for (int i = 0; i < difficultyButtons.length; i++) {
-            difficultyButtons[i].set(menuLeft, menuTop + i * 58f, menuLeft + menuWidth, menuTop + i * 58f + 46f);
+            difficultyButtons[i].set(menuLeft, menuTop + i * 56f, menuLeft + menuWidth, menuTop + i * 56f + 44f);
         }
     }
 
@@ -345,10 +349,12 @@ public class SnakeAndroidView extends View {
         paint.setColor(OVERLAY);
         canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
 
-        RectF titleRect = new RectF(0, getHeight() / 2f - 150f, getWidth(), getHeight() / 2f - 94f);
-        RectF subtitleRect = new RectF(0, getHeight() / 2f - 94f, getWidth(), getHeight() / 2f - 52f);
-        drawCenteredText(canvas, titleRect, title, 42f, TEXT, true);
-        drawCenteredText(canvas, subtitleRect, subtitle, 23f, MUTED_TEXT, false);
+        float menuLeft = difficultyButtons[0].left;
+        float menuRight = difficultyButtons[0].right;
+        RectF titleRect = new RectF(menuLeft, Math.max(18f, difficultyButtons[0].top - 104f), menuRight, difficultyButtons[0].top - 54f);
+        RectF subtitleRect = new RectF(menuLeft, difficultyButtons[0].top - 56f, menuRight, difficultyButtons[0].top - 18f);
+        drawCenteredText(canvas, titleRect, title, 38f, TEXT, true);
+        drawCenteredText(canvas, subtitleRect, subtitle, 20f, MUTED_TEXT, false);
 
         Difficulty[] values = Difficulty.values();
         for (int i = 0; i < values.length; i++) {

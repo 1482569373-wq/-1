@@ -154,7 +154,7 @@ public class SnakeAndroidView extends View {
         float width = getWidth();
         float height = getHeight();
         float margin = Math.max(12f, width * 0.035f);
-        float reservedBottom = height * 0.25f;
+        float reservedBottom = height * 0.30f;
         float settingsHeight = Math.max(92f, height * 0.13f);
         float boardAreaTop = margin;
         float boardAreaBottom = height - reservedBottom - settingsHeight - margin * 0.5f;
@@ -181,10 +181,10 @@ public class SnakeAndroidView extends View {
 
         // 方向键是手机端最常用的操作，所以这里优先保证它们足够大。
         // 旧版最大只有 66px，手指点击时容易误触；新版会根据屏幕宽度和控制区高度动态放大。
-        float desiredButtonSize = Math.min(92f, Math.max(72f, Math.min(width * 0.20f, controlRect.height() * 0.52f)));
+        float desiredButtonSize = Math.min(112f, Math.max(86f, Math.min(width * 0.26f, controlRect.height() * 0.56f)));
         float gap = Math.max(12f, desiredButtonSize * 0.16f);
         // 如果遇到特别矮的屏幕，按钮会自动收一点，避免下排方向键跑出屏幕底部。
-        float buttonSize = Math.min(desiredButtonSize, Math.max(56f, (controlRect.height() - gap) / 2f));
+        float buttonSize = Math.min(desiredButtonSize, Math.max(68f, (controlRect.height() - gap) / 2f));
         gap = Math.max(10f, buttonSize * 0.16f);
 
         float centerX = width / 2f;
@@ -406,10 +406,10 @@ public class SnakeAndroidView extends View {
     }
 
     private void drawControls(Canvas canvas) {
-        drawButton(canvas, upButton, "\u2191", CONTROL, 30f);
-        drawButton(canvas, leftButton, "\u2190", CONTROL, 30f);
-        drawButton(canvas, downButton, "\u2193", CONTROL, 30f);
-        drawButton(canvas, rightButton, "\u2192", CONTROL, 30f);
+        drawButton(canvas, upButton, "\u2191", CONTROL, 40f);
+        drawButton(canvas, leftButton, "\u2190", CONTROL, 40f);
+        drawButton(canvas, downButton, "\u2193", CONTROL, 40f);
+        drawButton(canvas, rightButton, "\u2192", CONTROL, 40f);
         drawButton(canvas, pauseButton, screen == GameScreen.PAUSED ? textContinue() : textPause(), CONTROL_ACTIVE, 21f);
         drawButton(canvas, restartButton, textRestart(), CONTROL_ACTIVE, 21f);
     }

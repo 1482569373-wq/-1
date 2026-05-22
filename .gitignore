@@ -1,0 +1,29 @@
+.tools/
+.mvn/
+target/
+.gradle/
+androidApp/build/
+.idea/
+.vscode/
+*.iml
+# 鐜鍙橀噺涓庡瘑閽ユ枃浠讹紙鏈€閲嶈锛侊級
+.env
+.env.*
+*.env
+!env.example
+
+# 鏈湴閰嶇疆鏂囦欢锛堝父鍚晱鎰熶俊鎭級
+*.local
+local.properties
+*.secret
+
+# 鍏朵粬鍙兘鐨勫瘑閽ユ枃浠?credentials.json
+service-account-key.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 濡傛灉 Codex 鐢熸垚浜嗕换浣?auth 鏂囦欢
+.codex/
+auth.json
